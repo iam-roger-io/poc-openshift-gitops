@@ -1,6 +1,6 @@
 apiVersion: tekton.dev/v1beta1
 kind: Pipeline
-metadata:
+metadata:  
   name: pipeline-demo  
 spec:
   finally:
@@ -19,6 +19,18 @@ spec:
     - default: 'https://gitlab.com/demo-integration/demo-integration-gitops.git'
       description: Url to clone GIOPS project
       name: GITOPS_REPOSITORY_URL
+      type: string
+    - default: iam-roger-io
+      description: git config  --global user.name
+      name: GITOPS_GLOBAL_USER_NAME
+      type: string
+    - default: rosantos@redhat.com
+      description: ' git config --global user.email'
+      name: GITOPS_GLOBAL_USER_EMAIL
+      type: string
+    - default: developer
+      description: Gitops repo Branch
+      name: GITOPS_BRANCH
       type: string
     - default: 'https://gitlab.com/demo-integration/demo-integration-backend.git'
       description: Url to clone source code
@@ -92,8 +104,14 @@ spec:
           workspace: shared-workspace
     - name: git-clone-gitops
       params:
-        - name: appName
-          value: N/A
+        - name: GITOPS_REPOSITORY_URL
+          value: $(params.GITOPS_REPOSITORY_URL)
+        - name: GITOPS_BRANCH
+          value: $(params.GITOPS_BRANCH)
+        - name: GITOPS_GLOBAL_USER_EMAIL
+          value: $(params.GITOPS_GLOBAL_USER_EMAIL)
+        - name: GITOPS_GLOBAL_USER_NAME
+          value: $(params.GITOPS_GLOBAL_USER_NAME)
       runAfter:
         - buildah-custom
       taskRef:
@@ -118,8 +136,10 @@ spec:
           workspace: shared-workspace
     - name: git-push-gitops
       params:
-        - name: appName
-          value: N/A
+        - name: GITOPS_GLOBAL_USER_NAME
+          value: $(params.GITOPS_GLOBAL_USER_NAME)
+        - name: GITOPS_GLOBAL_USER_EMAIL
+          value: $(params.GITOPS_GLOBAL_USER_EMAIL)
       runAfter:
         - update-gitops-files
       taskRef:

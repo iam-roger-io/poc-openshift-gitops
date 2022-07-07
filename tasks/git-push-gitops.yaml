@@ -4,8 +4,10 @@ metadata:
   name: git-push-gitops
 spec:
   params:
-    - name: appName
-      type: string
+    - name: GITOPS_GLOBAL_USER_EMAIL
+      type: string               
+    - name: GITOPS_GLOBAL_USER_NAME
+      type: string    
   steps:
     - image: >-
         docker.io/alpine/git:v2.26.2@sha256:23618034b0be9205d9cc0846eb711b12ba4c9b468efdd8a59aac1d7b1a23363f
@@ -15,16 +17,13 @@ spec:
         
         cd /workspace/source/demo-integration-gitops
 
-        git config --global user.email "rosantos@redhat.com"   
+        git config --global user.email "$(params.GITOPS_GLOBAL_USER_EMAIL)"
 
-        git config --global user.name "iam-roger-io"
-
-        git status 
+        git config  --global user.name "$(params.GITOPS_GLOBAL_USER_NAME)"
 
         git add .
 
-        git commit -m "Tekton Demo Integration Pipeline - Updating image
-        version."
+        git commit -m "Tekton Demo Integration Pipeline - Updating image version."
 
         git push
   workspaces:
