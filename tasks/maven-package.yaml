@@ -1,0 +1,33 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:  
+  name: maven-package 
+spec:
+  params:
+    - name: appName
+      type: string
+  results:
+    - description: Artifact id version from pom.xml file
+      name: ARTIFACT_ID_VERSION
+  steps:
+    - image: 'quay.io/iam_roger_io/openjdk-11-tools:0.9'
+      name: 'maven-package'
+      resources: {}
+      script: >
+        #!/usr/bin/env bash
+
+        cd /workspace/source/demo-integration-backend
+
+        ARTIFACT_ID_VERSION=$(mvn -Dexec.executable='echo'
+        -Dexec.args='${project.version}' --non-recursive exec:exec -q)   
+
+        ARTIFACT_ID_VERSION=$(echo ${ARTIFACT_ID_VERSION} | tr -dc '[:print:]') 
+
+        echo $ARTIFACT_ID_VERSION | tee $(results.ARTIFACT_ID_VERSION.path)
+
+        echo ARTIFACT_ID_VERSION "|"$ARTIFACT_ID_VERSION"|"
+
+        mvn clean install -Dmaven.repo.local=$(workspaces.maven-settings.path)
+  workspaces:
+    - name: source
+    - name: maven-settings

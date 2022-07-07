@@ -1,0 +1,35 @@
+apiVersion: triggers.tekton.dev/v1alpha1
+kind: TriggerTemplate
+metadata:  
+  name: trigger-template-pipeline-demo-dmfmn2  
+spec:
+  params:
+    - name: git-revision
+    - name: git-commit-message
+    - name: git-repo-url
+    - name: git-repo-name
+    - name: pusher-name
+  resourcetemplates:
+    - apiVersion: tekton.dev/v1beta1
+      kind: PipelineRun
+      metadata:
+        annotations: {}
+        generateName: pipeline-demo-
+        labels:
+          tekton.dev/pipeline: pipeline-demo
+        namespace: demo-integration-pipeline
+      spec:
+        params:
+          - name: IMAGE_NAME
+            value: quay.io/iam_roger_io/demo-integration-backend
+        pipelineRef:
+          name: pipeline-demo
+        resources: []
+        status: null
+        workspaces:
+          - name: shared-workspace
+            persistentVolumeClaim:
+              claimName: shared-pipeline-pvc
+          - name: maven-settings
+            persistentVolumeClaim:
+              claimName: shared-pipeline-pvc

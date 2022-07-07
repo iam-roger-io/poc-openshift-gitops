@@ -1,0 +1,21 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:  
+  name: clear-pvc 
+spec:
+  params:
+    - name: imageName
+      type: string
+  results:
+    - description: Image name to be created
+      name: imageName
+  steps:
+    - image: registry.redhat.io/ubi7/ubi-minimal
+      name: 'clear-pvc'
+      resources: {}
+      script: |
+        #!/usr/bin/env bash
+
+        echo "### Deleting unnecessary files..."
+        rm -rfv /workspace/source/demo-integration-gitops
+        rm -rfv /workspace/source/demo-integration-backend

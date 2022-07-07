@@ -1,0 +1,147 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: pipeline-demo  
+spec:
+  finally:
+    - name: clear-pvc
+      params:
+        - name: imageName
+          value: N/A
+      taskRef:
+        kind: Task
+        name: clear-pvc
+  params:
+    - default: quay.io/iam_roger_io/demo-integration-backend
+      description: Image to be generated
+      name: IMAGE_NAME
+      type: string
+    - default: 'https://gitlab.com/demo-integration/demo-integration-gitops.git'
+      description: Url to clone GIOPS project
+      name: GITOPS_REPOSITORY_URL
+      type: string
+    - default: 'https://gitlab.com/demo-integration/demo-integration-backend.git'
+      description: Url to clone source code
+      name: SOURCE_CODE_REPOSITORY
+      type: string
+    - default: developer
+      description: Branch name
+      name: SOURCE_CODE_REPOSITORY_BRANCH
+      type: string
+  results:
+    - description: the sum of all three operands
+      name: imageName
+      value: x
+  tasks:
+    - name: git-clone-source
+      params:
+        - name: url
+          value: $(params.SOURCE_CODE_REPOSITORY)
+        - name: revision
+          value: $(params.SOURCE_CODE_REPOSITORY_BRANCH)
+        - name: submodules
+          value: 'true'
+        - name: depth
+          value: '1'
+        - name: sslVerify
+          value: 'true'
+        - name: deleteExisting
+          value: 'true'
+        - name: verbose
+          value: 'true'
+        - name: gitInitImage
+          value: >-
+            registry.redhat.io/openshift-pipelines/pipelines-git-init-rhel8@sha256:5b36e9d4ddffa4c253c47e444b7d3158bbbd2a3acf3c301389f6c50cbf5e8086
+        - name: userHome
+          value: /tekton/home
+        - name: subdirectory
+          value: demo-integration-backend
+      taskRef:
+        kind: ClusterTask
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: shared-workspace
+    - name: buildah-custom
+      params:
+        - name: IMAGE
+          value: >-
+            $(params.IMAGE_NAME):$(tasks.maven-package.results.ARTIFACT_ID_VERSION)
+        - name: BUILDER_IMAGE
+          value: >-
+            registry.redhat.io/rhel8/buildah@sha256:23fb7971ea6ac4aaaaa1139473a602df0df19222a3b5a76b551b2b9ddd92e927
+        - name: STORAGE_DRIVER
+          value: vfs
+        - name: DOCKERFILE
+          value: /workspace/source/demo-integration-backend/Dockerfile
+        - name: CONTEXT
+          value: .
+        - name: TLSVERIFY
+          value: 'true'
+        - name: FORMAT
+          value: oci
+        - name: SKIP_PUSH
+          value: 'false'
+      runAfter:
+        - maven-package
+      taskRef:
+        kind: Task
+        name: buildah-custom
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: git-clone-gitops
+      params:
+        - name: appName
+          value: N/A
+      runAfter:
+        - buildah-custom
+      taskRef:
+        kind: Task
+        name: git-clone-gitops
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: update-gitops-files
+      params:
+        - name: IMAGE_SHA
+          value: $(tasks.buildah-custom.results.IMAGE_DIGEST)
+        - name: IMAGE_NAME
+          value: $(params.IMAGE_NAME)
+      runAfter:
+        - git-clone-gitops
+      taskRef:
+        kind: Task
+        name: update-gitops-files
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: git-push-gitops
+      params:
+        - name: appName
+          value: N/A
+      runAfter:
+        - update-gitops-files
+      taskRef:
+        kind: Task
+        name: git-push-gitops
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+    - name: maven-package
+      params:
+        - name: appName
+          value: N/A
+      runAfter:
+        - git-clone-source
+      taskRef:
+        kind: Task
+        name: maven-package
+      workspaces:
+        - name: source
+          workspace: shared-workspace
+        - name: maven-settings
+          workspace: shared-workspace
+  workspaces:
+    - name: shared-workspace
+    - name: maven-settings

@@ -1,0 +1,35 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata: 
+  name: update-gitops-files
+spec:
+  params:
+    - name: IMAGE_SHA
+      type: string
+    - name: IMAGE_NAME
+      type: string
+  steps:
+    - image: 'quay.io/iam_roger_io/openjdk-11-tools:0.9'
+      name: 'update-gitops-files'
+      resources: {}
+      script: >
+        #!/usr/bin/env bash
+
+        echo "IMAGE_DIGEST" $(inputs.params.IMAGE_SHA)
+
+        IMAGE_URL_WITH_SHA="$(inputs.params.IMAGE_NAME)"@"$(inputs.params.IMAGE_SHA)"
+
+        echo "IMAGE_URL_WITH_SHA: " $IMAGE_URL_WITH_SHA
+
+        echo "IMAGE_URL_WITH_SHA: |"$IMAGE_URL_WITH_SHA"|"
+
+        cd /workspace/source/demo-integration-gitops
+
+        IMAGE_URL_WITH_SHA=$IMAGE_URL_WITH_SHA yq -i '.backend.image =
+        strenv(IMAGE_URL_WITH_SHA)' values-dev.yaml
+
+        IMAGE_URL_WITH_SHA=$IMAGE_URL_WITH_SHA yq -i '.backend.image =
+        strenv(IMAGE_URL_WITH_SHA)' values-stage.yaml
+         
+  workspaces:
+    - name: source

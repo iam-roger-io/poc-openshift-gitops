@@ -1,0 +1,29 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: git-clone-gitops
+spec:
+  params:
+    - name: appName
+      type: string
+  steps:
+    - image: >-
+        docker.io/alpine/git:v2.26.2@sha256:23618034b0be9205d9cc0846eb711b12ba4c9b468efdd8a59aac1d7b1a23363f
+      name: 'git-clone-gitops'
+      resources: {}
+      script: >
+
+        rm -rfv /workspace/source/demo-integration-gitops
+
+        cd /workspace/source
+
+        git config --global user.email "rosantos@redhat.com"  
+
+        git config  --global user.name "iam-roger-io"
+
+        git clone
+        https://gitlab.com/demo-integration/demo-integration-gitops.git -b 
+        developer
+
+  workspaces:
+    - name: source
